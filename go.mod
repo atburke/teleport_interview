@@ -1,6 +1,6 @@
 module github.com/atburke/teleport_interview
 
-go 1.13
+go 1.16
 
 require (
 	github.com/gin-gonic/gin v1.7.2
