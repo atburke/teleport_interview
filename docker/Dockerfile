@@ -5,7 +5,7 @@ WORKDIR /go/src/app
 
 RUN useradd --no-log-init tp
 
-COPY . .
+COPY go.mod go.sum ./*.go ./
 RUN go build -v
 
 ENV GIN_MODE=release

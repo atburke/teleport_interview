@@ -1,0 +1,8 @@
+FROM mysql:8.0
+
+ENV MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mysql_root
+ENV MYSQL_DATABASE_FILE=/run/secrets/mysql_db
+ENV MYSQL_USER_FILE=/run/secrets/mysql_user
+ENV MYSQL_PASSWORD_FILE=/run/secrets/mysql_pw
+
+COPY sql/* /docker-entrypoint-initdb.d/
