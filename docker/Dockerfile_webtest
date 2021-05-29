@@ -1,3 +1,5 @@
 FROM node:16
-COPY frontend/* /
-ENTRYPOINT ["npm", "test", "--watchAll=false"]
+WORKDIR /app
+COPY frontend ./
+RUN npm install
+CMD ["npm", "test", "--", "--watchAll=false"]
