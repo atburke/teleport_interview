@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gin-gonic/gin"
 	"net/http"
+	"log"
 )
 
 func ping(c *gin.Context) {
@@ -24,5 +25,5 @@ func setupRouter() *gin.Engine {
 
 func main() {
 	router := setupRouter()
-	router.Run()
+	log.Fatal(router.RunTLS(":8080", "/run/secrets/server-cert.pem", "/run/secrets/server-key.pem"))
 }

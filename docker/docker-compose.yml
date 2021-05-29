@@ -8,6 +8,9 @@ services:
       - "8080:8080"
     networks:
       - dashnet
+    secrets:
+      - server-cert.pem
+      - server-key.pem
 
   db:
     build:
@@ -38,3 +41,7 @@ secrets:
     file: secrets/mysql_user
   mysql_pw:
     file: secrets/mysql_pw
+  server-cert.pem:
+    file: secrets/cert.pem
+  server-key.pem:
+    file: secrets/server-key.pem
