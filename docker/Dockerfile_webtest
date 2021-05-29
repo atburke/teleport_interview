@@ -1,0 +1,3 @@
+FROM node:16
+COPY frontend/* /
+ENTRYPOINT ["npm", "test", "--watchAll=false"]

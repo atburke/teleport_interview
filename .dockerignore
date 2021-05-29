@@ -3,3 +3,5 @@
 *.md
 docker
 teleport_interview
+frontend/build
+frontend/node_modules
