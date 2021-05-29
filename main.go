@@ -3,8 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/gin-gonic/gin"
-	"net/http"
 	"log"
+	"net/http"
 )
 
 func ping(c *gin.Context) {
