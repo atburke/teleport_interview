@@ -13,7 +13,7 @@ import (
 
 // Account represents a user's account and login information.
 type Account struct {
-	AccountID, Email, PasswordHash, Salt string
+	AccountId, Email, PasswordHash, Salt string
 }
 
 // Session represent's a user's session.

@@ -67,11 +67,99 @@ func (env *Env) serveIndex(c *gin.Context) {
 	c.String(http.StatusOK, newIndexData)
 }
 
+func (env *Env) login(c *gin.Context) {
+	now := time.Now()
+	csrfToken := c.Request.Header.Get("CSRF")
+
+	sessionToken, err := c.Cookie("session_token")
+	// should look into deduplicating this
+	// should also look into a logging library w/ levels (debug, info, warning, etc)
+	if err != nil {
+		log.Println("Missing session token")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	session, err := env.db.FetchSession(sessionToken)
+	if err != nil {
+		log.Printf("Error fetching session: %v\n", err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Expired(now) {
+		log.Println("Session expired")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if !IsSessionOwner(session, csrfToken) {
+		log.Println("Not owner of session")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Authenticated() {
+		log.Println("Already logged in")
+		c.AbortWithStatus(http.StatusOK)
+		return
+	}
+
+	email, password, ok := c.Request.BasicAuth()
+	if !ok {
+		log.Println("Missing basic auth")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	account, err := env.db.FetchAccount(email)
+	if err != nil {
+		log.Println("Missing account")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if !IsCorrectPassword(account, password) {
+		log.Println("Bad password")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	// both session tuples should only be accessed by this user, so we won't bother
+	// with a transaction
+	authenticatedSession, err := env.db.CreateSession(account.AccountId, csrfToken, now)
+	if err != nil {
+		log.Printf("Error creating session: %v\n", err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	err = env.db.DeleteSession(sessionToken)
+	if err != nil {
+		log.Printf("Error deleting old session: %v\n", err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	sessionCookie := http.Cookie{
+		Name:     "session_token",
+		Value:    authenticatedSession.SessionToken,
+		Secure:   true,
+		HttpOnly: true,
+		// Same-site is lax by default
+	}
+
+	http.SetCookie(c.Writer, &sessionCookie)
+	c.AbortWithStatus(http.StatusOK)
+
+}
+
 func setupRouter(env *Env) *gin.Engine {
 	router := gin.Default()
 	router.GET("/ping", env.ping)
 	router.GET("/index.html", env.serveIndex)
 	router.GET("/", env.serveIndex)
+	router.POST("/api/login", env.login)
 
 	router.Static("/static", "./web/static")
 	rootLevelFiles := []string{"asset-manifest.json", "favicon.ico", "logo192.png", "logo512.png", "manifest.json", "robots.txt"}
