@@ -52,6 +52,10 @@ type Database interface {
 	// FetchAccount fetches the account for a user.
 	FetchAccount(email string) (*Account, error)
 
+	// DeleteExpiredSessions deletes sessions that have expired (after either their
+	// idle or absolute timeout has passed)
+	DeleteExpiredSessions(t time.Time) error
+
 	// Close closes any underlying resources.
 	Close()
 }
@@ -66,7 +70,7 @@ type MySqlDatabase struct {
 func NewMySqlDatabase(username, password, databaseName string) (*MySqlDatabase, error) {
 	// hardcode non-sensitive info to speed us along
 	driver, err := sql.Open("mysql",
-		fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s", username, password, databaseName),
+		fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s?parseTime=true", username, password, databaseName),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to database: %w", err)
@@ -144,6 +148,16 @@ func (db *MySqlDatabase) FetchAccount(email string) (*Account, error) {
 	}
 
 	return &Account{accountId, email, passwordHash, salt}, nil
+}
+
+func (db *MySqlDatabase) DeleteExpiredSessions(t time.Time) error {
+	stmt := "DELETE FROM Sessions WHERE expire_idle < ? OR expire_abs < ?"
+	_, err := db.driver.Exec(stmt, t, t)
+	if err != nil {
+		return fmt.Errorf("SQL Error: %w", err)
+	}
+
+	return nil
 }
 
 func (db *MySqlDatabase) Close() {
