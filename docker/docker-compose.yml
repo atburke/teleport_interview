@@ -11,6 +11,9 @@ services:
     secrets:
       - server-cert.pem
       - server-key.pem
+      - mysql_user
+      - mysql_pw
+      - mysql_db
 
   db:
     build:

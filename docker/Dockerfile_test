@@ -2,6 +2,11 @@ FROM golang:1.16
 
 WORKDIR /go/src/app
 
+# test hack
+# index.html is begging to be a template now
+COPY frontend/public/index.html web/
+
 COPY go.mod go.sum ./*.go ./
+ENV GIN_MODE=test
 
 CMD ["go", "test"]
