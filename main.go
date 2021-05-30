@@ -151,7 +151,47 @@ func (env *Env) login(c *gin.Context) {
 
 	http.SetCookie(c.Writer, &sessionCookie)
 	c.AbortWithStatus(http.StatusOK)
+}
 
+func (env *Env) logout(c *gin.Context) {
+	// TODO: move logged in check to its own function
+	now := time.Now()
+	csrfToken := c.Request.Header.Get("CSRF")
+
+	sessionToken, err := c.Cookie("session_token")
+	// should look into deduplicating this
+	// should also look into a logging library w/ levels (debug, info, warning, etc)
+	if err != nil {
+		log.Println("Missing session token")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	session, err := env.db.FetchSession(sessionToken)
+	if err != nil {
+		log.Printf("Error fetching session: %v\n", err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	if session.Expired(now) {
+		log.Println("Session expired")
+		c.AbortWithStatus(http.StatusOK)
+		return
+	}
+
+	if !IsSessionOwner(session, csrfToken) {
+		log.Println("Not owner of session")
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	err = env.db.DeleteSession(sessionToken)
+	if err != nil {
+		log.Printf("Error deleting session: %v\n", err)
+	}
+
+	c.AbortWithStatus(http.StatusOK)
 }
 
 func setupRouter(env *Env) *gin.Engine {
@@ -160,6 +200,7 @@ func setupRouter(env *Env) *gin.Engine {
 	router.GET("/index.html", env.serveIndex)
 	router.GET("/", env.serveIndex)
 	router.POST("/api/login", env.login)
+	router.POST("/api/logout", env.logout)
 
 	router.Static("/static", "./web/static")
 	rootLevelFiles := []string{"asset-manifest.json", "favicon.ico", "logo192.png", "logo512.png", "manifest.json", "robots.txt"}

@@ -246,3 +246,68 @@ func TestLoginBadPassword(t *testing.T) {
 
 	assert.Equal(t, http.StatusUnauthorized, w.Code)
 }
+
+func TestLogout(t *testing.T) {
+	theFuture := time.Now().AddDate(0, 0, 1)
+	session := Session{
+		SessionToken: sessionToken,
+		CSRFToken:    csrfToken,
+		ExpireIdle:   theFuture,
+		ExpireAbs:    theFuture,
+	}
+	db := MockDatabase{session: &session}
+	env := &Env{&db}
+	router := setupRouter(env)
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/logout", nil)
+
+	sessionCookie := http.Cookie{Name: "session_token", Value: sessionToken}
+	request.AddCookie(&sessionCookie)
+	request.Header.Set("CSRF", csrfToken)
+
+	router.ServeHTTP(w, request)
+
+	assert.Equal(t, http.StatusOK, w.Code)
+}
+
+func TestLogoutNotLoggedIn(t *testing.T) {
+	db := MockDatabase{sessionError: errors.New("No session")}
+	env := &Env{&db}
+	router := setupRouter(env)
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/logout", nil)
+
+	sessionCookie := http.Cookie{Name: "session_token", Value: sessionToken}
+	request.AddCookie(&sessionCookie)
+	request.Header.Set("CSRF", csrfToken)
+
+	router.ServeHTTP(w, request)
+
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
+
+func TestLogoutBadCSRF(t *testing.T) {
+	theFuture := time.Now().AddDate(0, 0, 1)
+	session := Session{
+		SessionToken: sessionToken,
+		CSRFToken:    csrfToken,
+		ExpireIdle:   theFuture,
+		ExpireAbs:    theFuture,
+	}
+	db := MockDatabase{session: &session}
+	env := &Env{&db}
+	router := setupRouter(env)
+	w := httptest.NewRecorder()
+	request := httptest.NewRequest("POST", "/api/logout", nil)
+
+	badToken := "00558833775588449933775566448855"
+
+	sessionCookie := http.Cookie{Name: "session_token", Value: sessionToken}
+	request.AddCookie(&sessionCookie)
+	request.Header.Set("CSRF", badToken)
+
+	router.ServeHTTP(w, request)
+
+	// TODO: when we have better mocking, check that session wasn't deleted
+	assert.Equal(t, http.StatusUnauthorized, w.Code)
+}
