@@ -1,6 +1,7 @@
 import axios from 'axios';
 
-// stealing this idea from angular
+const windowData = window as any;
+
 export async function login(username: string, password: string): Promise<boolean> {
   try {
     const response = await axios({
@@ -8,7 +9,7 @@ export async function login(username: string, password: string): Promise<boolean
       method: 'post',
       baseURL: 'https://localhost:8080/api/',
       headers: {
-        CSRF: window.token,
+        CSRF: windowData.csrfToken,
       },
       auth: {
         username,
@@ -28,7 +29,7 @@ export async function logout(): Promise<boolean> {
       method: 'post',
       baseURL: 'https://localhost:8080/api/',
       headers: {
-        CSRF: window.token,
+        CSRF: windowData.csrfToken,
       },
     });
     return response.status === 200;

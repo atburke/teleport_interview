@@ -2,8 +2,8 @@ import React from 'react';
 import './index.css';
 
 interface LoginProps {
-  login: (string, string) => Promise<boolean>;
-  navigate: (string) => void;
+  login: (user: string, pass: string) => Promise<boolean>;
+  navigate: (r: string) => void;
 }
 
 interface LoginState {
@@ -13,7 +13,7 @@ interface LoginState {
 }
 
 class Login extends React.Component<LoginProps, LoginState> {
-  constructor(props) {
+  constructor(props: LoginProps) {
     super(props);
     this.state = {
       username: '',
@@ -26,11 +26,11 @@ class Login extends React.Component<LoginProps, LoginState> {
     this.login = this.login.bind(this);
   }
 
-  public setUsername(event): void {
+  public setUsername(event: any): void {
     this.setState({ username: event.target.value });
   }
 
-  public setPassword(event): void {
+  public setPassword(event: any): void {
     this.setState({ password: event.target.value });
   }
 

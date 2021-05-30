@@ -5,7 +5,7 @@ import Dashboard from './Dashboard';
 // import './App.css';
 
 interface AppProps {
-  login: (string, string) => Promise<boolean>;
+  login: (user: string, pass: string) => Promise<boolean>;
   logout: () => Promise<boolean>;
 }
 

@@ -3,10 +3,10 @@ import './index.css';
 
 interface DashboardProps {
   logout: () => Promise<boolean>;
-  navigate: (string) => void;
+  navigate: (r: string) => void;
 }
 
-class Dashboard extends React.Component<DashboardProps, DashboardState> {
+class Dashboard extends React.Component<DashboardProps, any> {
   constructor(props: DashboardProps) {
     super(props);
 
