@@ -227,6 +227,18 @@ func main() {
 		log.Fatal(err)
 	}
 
+	go func() {
+		tick := time.NewTicker(time.Minute)
+		for {
+			now := <-tick.C
+			log.Println("Clearing expired sessions")
+			err := env.db.DeleteExpiredSessions(now)
+			if err != nil {
+				log.Println("Error while cleaning up expired sessions: %v\n", err)
+			}
+		}
+	}()
+
 	router := setupRouter(env)
 	log.Fatal(router.RunTLS(
 		":8080", "/run/secrets/server-cert.pem", "/run/secrets/server-key.pem",
