@@ -7,6 +7,18 @@ import (
 	"golang.org/x/crypto/argon2"
 )
 
+// TODO: use bytes everywhere, rather than constantly switching between strings
+// and bytes
+
+// GenHash generates a password hash from a password and salt. The salt and
+// hash are hex-encoded strings.
+func GenHash(password, salt string) string {
+	passwordIn := []byte(password)
+	saltIn, _ := hex.DecodeString(salt)
+	hash := argon2.IDKey(passwordIn, saltIn, 2, 15*1024, 1, 16)
+	return hex.EncodeToString(hash)
+}
+
 // GenerateToken generates a cryptographically-random token.
 //
 // Since all of our tokens will be the same length, the output length is hard-coded.
@@ -33,11 +45,7 @@ func IsSessionOwner(session *Session, csrfToken string) bool {
 // IsCorrectPassword checks if a client's provided password matches the password
 // for the account, in constant time.
 func IsCorrectPassword(account *Account, password string) bool {
-	givenPassword := []byte(password)
 	expectedHash, _ := hex.DecodeString(account.PasswordHash)
-	salt, _ := hex.DecodeString(account.Salt)
-
-	// hard-coded params
-	hash := argon2.IDKey(givenPassword, salt, 2, 15*1024, 1, 16)
+	hash, _ := hex.DecodeString(GenHash(password, account.Salt))
 	return subtle.ConstantTimeCompare(expectedHash, hash) == 1
 }

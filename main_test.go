@@ -99,7 +99,7 @@ func TestLogin(t *testing.T) {
 	account := Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: genHash(password, salt),
+		PasswordHash: GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account, authSession: &authSession}
@@ -162,7 +162,7 @@ func TestLoginBadSessionToken(t *testing.T) {
 	account := Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: genHash(password, salt),
+		PasswordHash: GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account, sessionError: errors.New("Bad session token")}
@@ -194,7 +194,7 @@ func TestLoginBadCSRF(t *testing.T) {
 	account := Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: genHash(password, salt),
+		PasswordHash: GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
@@ -226,7 +226,7 @@ func TestLoginBadPassword(t *testing.T) {
 	account := Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: genHash(password, salt),
+		PasswordHash: GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
