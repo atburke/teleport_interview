@@ -9,6 +9,10 @@ build:
 up:
 	${COMPOSE} up
 
+clean:
+	${COMPOSE} down
+	docker volume rm teleport_interview_dbdata
+
 test: test_backend test_frontend
 
 test_backend:

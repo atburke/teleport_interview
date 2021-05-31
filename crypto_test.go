@@ -2,8 +2,10 @@ package main
 
 import (
 	"encoding/hex"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"golang.org/x/crypto/argon2"
+	"os"
 	"testing"
 )
 
@@ -41,4 +43,12 @@ func TestNotCorrectPassword(t *testing.T) {
 	expectedHash := genHash(password, salt)
 	account := Account{PasswordHash: expectedHash, Salt: salt}
 	assert.False(t, IsCorrectPassword(&account, "mypasswordd"))
+}
+
+func TestMain(m *testing.M) {
+	// this is a more reliable way to get our test hash than with the web version
+	// I was using
+	fmt.Println("admin@example.com:sneakyadminpassword")
+	fmt.Printf("Hash is %s\n", genHash("sneakyadminpassword", "8bc78e90a114942e38ee62a89b2f22cf"))
+	os.Exit(m.Run())
 }

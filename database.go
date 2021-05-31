@@ -70,7 +70,7 @@ type MySqlDatabase struct {
 func NewMySqlDatabase(username, password, databaseName string) (*MySqlDatabase, error) {
 	// hardcode non-sensitive info to speed us along
 	driver, err := sql.Open("mysql",
-		fmt.Sprintf("%s:%s@tcp(localhost:3306)/%s?parseTime=true", username, password, databaseName),
+		fmt.Sprintf("%s:%s@tcp(db:3306)/%s?parseTime=true", username, password, databaseName),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to database: %w", err)
@@ -89,10 +89,15 @@ func (db *MySqlDatabase) CreateSession(accountId, csrfToken string, initTime tim
 	if err != nil {
 		return nil, fmt.Errorf("Cound not generate token: %w", err)
 	}
-	stmt := "INSERT INTO Sessions(account_id, session_token, csrf_token, expire_idle, expire_abs) VALUES (?, ?, ?, ?)"
+
+	// hooray more hardcoding!
+	const expireIdleTime = 30 * time.Minute
+	const expireAbsTime = 8 * time.Hour
+
+	stmt := "INSERT INTO Sessions(account_id, session_token, csrf_token, expire_idle, expire_abs) VALUES (?, ?, ?, ?, ?)"
 
 	// TODO: consider explicitly handling case where sessionToken happens to be a duplicate?
-	_, err = db.driver.Exec(stmt, accountId, sessionToken, csrfToken, initTime, initTime)
+	_, err = db.driver.Exec(stmt, accountId, sessionToken, csrfToken, initTime.Add(expireIdleTime), initTime.Add(expireAbsTime))
 	if err != nil {
 		return nil, fmt.Errorf("Error inserting new session: %w", err)
 	}

@@ -24,12 +24,6 @@ func (env *Env) ping(c *gin.Context) {
 
 func (env *Env) serveIndex(c *gin.Context) {
 	now := time.Now()
-	indexData, err := os.ReadFile("./web/index.html")
-	if err != nil {
-		log.Println(err)
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
 
 	csrfToken, err := GenerateToken()
 	if err != nil {
@@ -45,14 +39,6 @@ func (env *Env) serveIndex(c *gin.Context) {
 		return
 	}
 
-	// could consider templating this properly
-	newIndexData := strings.Replace(
-		string(indexData),
-		"window.csrfToken = '';",
-		fmt.Sprintf("window.csrfToken = '%s';", csrfToken),
-		1,
-	)
-
 	c.Header("Content-Type", "text/html")
 	sessionCookie := http.Cookie{
 		Name:     "session_token",
@@ -62,9 +48,9 @@ func (env *Env) serveIndex(c *gin.Context) {
 		// Same-site is lax by default
 	}
 
-	// Gin has a slightly weirder interface for this for some reason
+	// Gin has a slightly weirder interface for cookies for some reason
 	http.SetCookie(c.Writer, &sessionCookie)
-	c.String(http.StatusOK, newIndexData)
+	c.HTML(http.StatusOK, "index.html", gin.H{"csrf": csrfToken})
 }
 
 func (env *Env) login(c *gin.Context) {
@@ -196,6 +182,7 @@ func (env *Env) logout(c *gin.Context) {
 
 func setupRouter(env *Env) *gin.Engine {
 	router := gin.Default()
+	router.LoadHTMLGlob("web/index.html")
 	router.GET("/ping", env.ping)
 	router.GET("/index.html", env.serveIndex)
 	router.GET("/", env.serveIndex)
@@ -227,7 +214,7 @@ func getEnvironment() (*Env, error) {
 		return nil, err
 	}
 
-	db, err := NewMySqlDatabase(string(dbUsername), string(dbPassword), string(dbName))
+	db, err := NewMySqlDatabase(strings.TrimSpace(string(dbUsername)), strings.TrimSpace(string(dbPassword)), strings.TrimSpace(string(dbName)))
 	if err != nil {
 		return nil, err
 	}

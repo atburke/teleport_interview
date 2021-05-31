@@ -62,12 +62,13 @@ class Login extends React.Component<LoginProps, LoginState> {
             <input type="password" id="password" className="field" onChange={this.setPassword} />
           </label>
         </div>
-        <input
-          type="submit"
-          value="Login to my Dashboard"
+        <button
+          type="button"
           className="button block"
           onClick={this.login}
-        />
+        >
+          Login to my Dashboard
+        </button>
         <div className="alert is-error">{errorMessage}</div>
       </form>
     );

@@ -1,5 +1,7 @@
 import React from 'react';
-import { render, fireEvent, screen, waitFor } from '@testing-library/react';
+import {
+  render, fireEvent, screen, waitFor,
+} from '@testing-library/react';
 import Dashboard from './Dashboard';
 
 test('navigates on successful logout', async () => {
