@@ -165,7 +165,12 @@ func TestLoginBadSessionToken(t *testing.T) {
 		PasswordHash: GenHash(password, salt),
 		Salt:         salt,
 	}
-	db := MockDatabase{session: &session, account: &account, sessionError: errors.New("Bad session token")}
+	db := MockDatabase{
+		session:      &session,
+		account:      &account,
+		sessionError: errors.New("Bad session token"),
+	}
+
 	env := &Env{&db}
 	router := setupRouter(env)
 	w := httptest.NewRecorder()

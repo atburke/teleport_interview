@@ -192,7 +192,15 @@ func setupRouter(env *Env) *gin.Engine {
 	router.POST("/api/logout", env.logout)
 
 	router.Static("/static", "./web/static")
-	rootLevelFiles := []string{"asset-manifest.json", "favicon.ico", "logo192.png", "logo512.png", "manifest.json", "robots.txt"}
+	rootLevelFiles := []string{
+		"asset-manifest.json",
+		"favicon.ico",
+		"logo192.png",
+		"logo512.png",
+		"manifest.json",
+		"robots.txt",
+	}
+
 	for _, file := range rootLevelFiles {
 		router.StaticFile(fmt.Sprintf("/%s", file), fmt.Sprintf("./web/%s", file))
 	}
@@ -216,7 +224,11 @@ func getEnvironment() (*Env, error) {
 		return nil, err
 	}
 
-	db, err := NewMySqlDatabase(strings.TrimSpace(string(dbUsername)), strings.TrimSpace(string(dbPassword)), strings.TrimSpace(string(dbName)))
+	db, err := NewMySqlDatabase(
+		strings.TrimSpace(string(dbUsername)),
+		strings.TrimSpace(string(dbPassword)),
+		strings.TrimSpace(string(dbName)),
+	)
 	if err != nil {
 		return nil, err
 	}
