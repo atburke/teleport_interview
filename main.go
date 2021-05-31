@@ -43,9 +43,10 @@ func (env *Env) serveIndex(c *gin.Context) {
 	sessionCookie := http.Cookie{
 		Name:     "session_token",
 		Value:    session.SessionToken,
+		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
-		// Same-site is lax by default
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	// Gin has a slightly weirder interface for cookies for some reason
@@ -130,9 +131,10 @@ func (env *Env) login(c *gin.Context) {
 	sessionCookie := http.Cookie{
 		Name:     "session_token",
 		Value:    authenticatedSession.SessionToken,
+		Path:     "/",
 		Secure:   true,
 		HttpOnly: true,
-		// Same-site is lax by default
+		SameSite: http.SameSiteLaxMode,
 	}
 
 	http.SetCookie(c.Writer, &sessionCookie)
@@ -234,7 +236,7 @@ func main() {
 			log.Println("Clearing expired sessions")
 			err := env.db.DeleteExpiredSessions(now)
 			if err != nil {
-				log.Println("Error while cleaning up expired sessions: %v\n", err)
+				log.Printf("Error while cleaning up expired sessions: %v\n", err)
 			}
 		}
 	}()

@@ -23,7 +23,13 @@ class Login extends React.Component<LoginProps, LoginState> {
 
     this.setUsername = this.setUsername.bind(this);
     this.setPassword = this.setPassword.bind(this);
+    this.onSubmit = this.onSubmit.bind(this);
     this.login = this.login.bind(this);
+  }
+
+  public onSubmit(event: any): void {
+    event.preventDefault();
+    this.login();
   }
 
   public setUsername(event: any): void {
@@ -47,6 +53,7 @@ class Login extends React.Component<LoginProps, LoginState> {
 
   render() {
     const { errorMessage } = this.state;
+    const alertStyle = { 'margin-top': '1em', display: errorMessage ? 'block' : 'none' };
     return (
       <form className="login-form">
         <h1>Sign Into Your Account</h1>
@@ -62,14 +69,13 @@ class Login extends React.Component<LoginProps, LoginState> {
             <input type="password" id="password" className="field" onChange={this.setPassword} />
           </label>
         </div>
-        <button
-          type="button"
+        <input
+          type="submit"
+          value="Login to my Dashboard"
           className="button block"
-          onClick={this.login}
-        >
-          Login to my Dashboard
-        </button>
-        <div className="alert is-error">{errorMessage}</div>
+          onClick={this.onSubmit}
+        />
+        <div className="alert is-error" style={alertStyle}>{errorMessage}</div>
       </form>
     );
   }
