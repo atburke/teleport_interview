@@ -1,9 +1,10 @@
-package main
+package crypto
 
 import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"github.com/atburke/teleport_interview/internal/types"
 	"golang.org/x/crypto/argon2"
 )
 
@@ -34,7 +35,7 @@ func GenerateToken() (string, error) {
 
 // IsSessionOwner checks if a client's csrf token matches the one in its session
 // in constant time.
-func IsSessionOwner(session *Session, csrfToken string) bool {
+func IsSessionOwner(session *types.Session, csrfToken string) bool {
 	// If we have malformed tokens, this function should return false, so we can
 	// ignore decode errors.
 	expectedCSRFToken, _ := hex.DecodeString(session.CSRFToken)
@@ -44,7 +45,7 @@ func IsSessionOwner(session *Session, csrfToken string) bool {
 
 // IsCorrectPassword checks if a client's provided password matches the password
 // for the account, in constant time.
-func IsCorrectPassword(account *Account, password string) bool {
+func IsCorrectPassword(account *types.Account, password string) bool {
 	expectedHash, _ := hex.DecodeString(account.PasswordHash)
 	hash, _ := hex.DecodeString(GenHash(password, account.Salt))
 	return subtle.ConstantTimeCompare(expectedHash, hash) == 1

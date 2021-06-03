@@ -1,7 +1,9 @@
-package main
+package server
 
 import (
 	"errors"
+	"github.com/atburke/teleport_interview/internal/types"
+	"github.com/atburke/teleport_interview/internal/crypto"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -13,20 +15,20 @@ import (
 
 // TODO: see if there's a better home for MockDatabase
 type MockDatabase struct {
-	session, authSession       *Session
-	account                    *Account
+	session, authSession       *types.Session
+	account                    *types.Account
 	sessionError, accountError error
 }
 
-func (m *MockDatabase) CreatePreAuthSession(csrfToken string, initTime time.Time) (*Session, error) {
+func (m *MockDatabase) CreatePreAuthSession(csrfToken string, initTime time.Time) (*types.Session, error) {
 	return m.session, m.sessionError
 }
 
-func (m *MockDatabase) CreateSession(accountId, csrfToken string, initTime time.Time) (*Session, error) {
+func (m *MockDatabase) CreateSession(accountId, csrfToken string, initTime time.Time) (*types.Session, error) {
 	return m.authSession, m.sessionError
 }
 
-func (m *MockDatabase) FetchSession(sessionToken string) (*Session, error) {
+func (m *MockDatabase) FetchSession(sessionToken string) (*types.Session, error) {
 	return m.session, m.sessionError
 }
 
@@ -34,7 +36,7 @@ func (m *MockDatabase) DeleteSession(sessionToken string) error {
 	return m.sessionError
 }
 
-func (m *MockDatabase) FetchAccount(email string) (*Account, error) {
+func (m *MockDatabase) FetchAccount(email string) (*types.Account, error) {
 	return m.account, m.accountError
 }
 
@@ -45,7 +47,7 @@ func (m *MockDatabase) DeleteExpiredSessions(t time.Time) error {
 func (m *MockDatabase) Close() {}
 
 func TestPing(t *testing.T) {
-	router := setupRouter(&Env{&MockDatabase{}})
+	router := SetupRouter(&Env{&MockDatabase{}, "./web/"})
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/ping", nil)
 	router.ServeHTTP(w, request)
@@ -56,9 +58,9 @@ func TestPing(t *testing.T) {
 
 func TestIndex(t *testing.T) {
 	fakeToken := "00112233445566778899aabbccddeeff"
-	db := MockDatabase{session: &Session{SessionToken: fakeToken}}
-	env := &Env{&db}
-	router := setupRouter(env)
+	db := MockDatabase{session: &types.Session{SessionToken: fakeToken}}
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("GET", "/index.html", nil)
 	router.ServeHTTP(w, request)
@@ -84,27 +86,27 @@ const salt = "d7c7dd775f746f67f76ded1cedc7b57f"
 func TestLogin(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
 	token2 := "abcdabcdabcdabcdabcdabcdabcdabcd"
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
-	authSession := Session{
+	authSession := types.Session{
 		SessionToken: token2,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
-	account := Account{
+	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: GenHash(password, salt),
+		PasswordHash: crypto.GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account, authSession: &authSession}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/login", nil)
 
@@ -127,15 +129,15 @@ func TestLogin(t *testing.T) {
 
 func TestLoginNoAccount(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session, accountError: errors.New("Account not found")}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/login", nil)
 
@@ -153,16 +155,16 @@ func TestLoginNoAccount(t *testing.T) {
 
 func TestLoginBadSessionToken(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
-	account := Account{
+	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: GenHash(password, salt),
+		PasswordHash: crypto.GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{
@@ -171,8 +173,8 @@ func TestLoginBadSessionToken(t *testing.T) {
 		sessionError: errors.New("Bad session token"),
 	}
 
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/login", nil)
 
@@ -190,21 +192,21 @@ func TestLoginBadSessionToken(t *testing.T) {
 
 func TestLoginBadCSRF(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
-	account := Account{
+	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: GenHash(password, salt),
+		PasswordHash: crypto.GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/login", nil)
 
@@ -222,21 +224,21 @@ func TestLoginBadCSRF(t *testing.T) {
 
 func TestLoginBadPassword(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
-	account := Account{
+	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: GenHash(password, salt),
+		PasswordHash: crypto.GenHash(password, salt),
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/login", nil)
 
@@ -254,15 +256,15 @@ func TestLoginBadPassword(t *testing.T) {
 
 func TestLogout(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/logout", nil)
 
@@ -277,8 +279,8 @@ func TestLogout(t *testing.T) {
 
 func TestLogoutNotLoggedIn(t *testing.T) {
 	db := MockDatabase{sessionError: errors.New("No session")}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/logout", nil)
 
@@ -293,15 +295,15 @@ func TestLogoutNotLoggedIn(t *testing.T) {
 
 func TestLogoutBadCSRF(t *testing.T) {
 	theFuture := time.Now().AddDate(0, 0, 1)
-	session := Session{
+	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
 		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session}
-	env := &Env{&db}
-	router := setupRouter(env)
+	env := &Env{&db, "./web/"}
+	router := SetupRouter(env)
 	w := httptest.NewRecorder()
 	request := httptest.NewRequest("POST", "/api/logout", nil)
 

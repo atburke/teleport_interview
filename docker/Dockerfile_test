@@ -4,9 +4,11 @@ WORKDIR /go/src/app
 
 # test hack
 # index.html is begging to be a template now
-COPY frontend/public/index.html web/
+COPY frontend/public/index.html internal/server/web/
 
-COPY go.mod go.sum ./*.go ./
+COPY go.mod go.sum main.go ./
+COPY internal ./internal
+RUN go install
 ENV GIN_MODE=test
 
-CMD ["go", "test"]
+CMD ["go", "test" ,"./..."]

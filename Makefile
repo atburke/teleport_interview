@@ -1,5 +1,5 @@
 .DEFAULT_GOAL := build
-.PHONY: build run test test_backend test_frontend
+.PHONY: build run test test_backend test_frontend clean fmt
 
 COMPOSE = docker-compose -f docker/docker-compose.yml --project-directory .
 
@@ -12,6 +12,9 @@ up:
 clean:
 	${COMPOSE} down
 	docker volume rm teleport_interview_dbdata
+
+fmt:
+	go fmt ./...
 
 test: test_backend test_frontend
 

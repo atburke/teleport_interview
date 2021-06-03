@@ -12,10 +12,12 @@ WORKDIR /go/src/app
 
 RUN useradd --no-log-init tp
 
-COPY go.mod go.sum ./*.go ./
-RUN go build -v
+COPY go.mod go.sum main.go ./
+COPY internal ./internal
+RUN go install
+RUN go build
 
-COPY --from=builder /app/build ./web/
+COPY --from=builder /app/build internal/server/web/
 
 ENV GIN_MODE=release
 EXPOSE 8080

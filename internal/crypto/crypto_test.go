@@ -1,7 +1,8 @@
-package main
+package crypto
 
 import (
 	"fmt"
+	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/stretchr/testify/assert"
 	"os"
 	"testing"
@@ -9,14 +10,14 @@ import (
 
 func TestMatchingCSRFTokens(t *testing.T) {
 	token := "4233af9dc30344cd"
-	session := Session{CSRFToken: token}
+	session := types.Session{CSRFToken: token}
 	assert.True(t, IsSessionOwner(&session, token))
 }
 
 func TestNotMatchingCSRFTokens(t *testing.T) {
 	token1 := "4233af9dc30344cd"
 	token2 := "2433af9dc30344cd"
-	session := Session{CSRFToken: token1}
+	session := types.Session{CSRFToken: token1}
 	assert.False(t, IsSessionOwner(&session, token2))
 }
 
@@ -24,7 +25,7 @@ func TestCorrectPassword(t *testing.T) {
 	password := "mypassword"
 	salt := "d7c7dd775f746f67f76ded1cedc7b57f"
 	expectedHash := GenHash(password, salt)
-	account := Account{PasswordHash: expectedHash, Salt: salt}
+	account := types.Account{PasswordHash: expectedHash, Salt: salt}
 	assert.True(t, IsCorrectPassword(&account, password))
 }
 
@@ -32,7 +33,7 @@ func TestNotCorrectPassword(t *testing.T) {
 	password := "mypassword"
 	salt := "d7c7dd775f746f67f76ded1cedc7b57f"
 	expectedHash := GenHash(password, salt)
-	account := Account{PasswordHash: expectedHash, Salt: salt}
+	account := types.Account{PasswordHash: expectedHash, Salt: salt}
 	assert.False(t, IsCorrectPassword(&account, "mypasswordd"))
 }
 
