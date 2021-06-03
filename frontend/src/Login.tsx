@@ -44,10 +44,14 @@ class Login extends React.Component<LoginProps, LoginState> {
     const { username, password } = this.state;
     const { login, navigate } = this.props;
     const success = await login(username, password);
-    if (success) {
+    if (success === 200) {
       navigate('/dashboard');
-    } else {
+    } else if (success === 401) {
       this.setState({ errorMessage: 'Invalid email/password.' });
+
+    // Most likely 500, but a user won't need to know differently if it isn't.
+    } else {
+      this.setState({ errorMessage: 'Server error! Please contact [somebody] for assistance.' });
     }
   }
 

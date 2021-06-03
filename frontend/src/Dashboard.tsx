@@ -6,23 +6,36 @@ interface DashboardProps {
   navigate: (r: string) => void;
 }
 
-class Dashboard extends React.Component<DashboardProps, any> {
+interface DashboardState {
+  errorMessage: string;
+}
+
+class Dashboard extends React.Component<DashboardProps, DashboardState> {
   constructor(props: DashboardProps) {
     super(props);
+
+    this.state = {
+      errorMessage: '',
+    };
 
     this.logout = this.logout.bind(this);
   }
 
   public async logout(): Promise<void> {
     const { logout, navigate } = this.props;
-    const success = await logout();
-    if (success) {
+    const status = await logout();
+    // If they get 401, they weren't supposed to be here in the first place!
+    if (status === 200 || status === 401) {
       navigate('/login');
+    } else {
+      this.setState({ errorMessage: 'Server error! Please contact [somebody] for assistance.' });
     }
   }
 
   render() {
     const barStyle = { width: '35%' };
+    const { errorMessage } = this.state;
+    const alertStyle = { 'margin-top': '1em', display: errorMessage ? 'block' : 'none' };
     return (
       <div>
         <header className="top-nav">
@@ -32,6 +45,8 @@ class Dashboard extends React.Component<DashboardProps, any> {
           </h1>
           <button className="button is-border" type="button" onClick={this.logout}>Logout</button>
         </header>
+
+        <div className="alert is-error" style={alertStyle}>{errorMessage}</div>
 
         <div className="plan">
           <header>Startup Plan - $100/Month</header>
