@@ -1,13 +1,19 @@
 import React from 'react';
 import './index.css';
+import { ApiResponse } from './api';
 
 interface DashboardProps {
-  logout: () => Promise<boolean>;
+  logout: () => Promise<ApiResponse>;
   navigate: (r: string) => void;
 }
 
 interface DashboardState {
   errorMessage: string;
+}
+
+// TODO: deduplicate this/one in login.tsx
+function interpretError(error: string): string {
+  return `Unexpected ${error} error. Please contact [somebody] for assistance.`;
 }
 
 class Dashboard extends React.Component<DashboardProps, DashboardState> {
@@ -23,12 +29,12 @@ class Dashboard extends React.Component<DashboardProps, DashboardState> {
 
   public async logout(): Promise<void> {
     const { logout, navigate } = this.props;
-    const status = await logout();
+    const { ok, error } = await logout();
     // If they get 401, they weren't supposed to be here in the first place!
-    if (status === 200 || status === 401) {
+    if (ok || error === 'auth') {
       navigate('/login');
     } else {
-      this.setState({ errorMessage: 'Server error! Please contact [somebody] for assistance.' });
+      this.setState({ errorMessage: interpretError(error) });
     }
   }
 

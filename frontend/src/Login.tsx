@@ -1,8 +1,9 @@
 import React from 'react';
 import './index.css';
+import { ApiResponse } from './api';
 
 interface LoginProps {
-  login: (user: string, pass: string) => Promise<boolean>;
+  login: (user: string, pass: string) => Promise<ApiResponse>;
   navigate: (r: string) => void;
 }
 
@@ -10,6 +11,16 @@ interface LoginState {
   username: string;
   password: string;
   errorMessage: string;
+}
+
+// should check to see if airbnb style is ok with using objects as dicts
+function interpretError(error: string): string {
+  if (error === 'auth') {
+    return 'Invalid email/password.';
+
+  // server or network error
+  }
+  return `Unexpected ${error} error. Please contact [somebody] for assistance.`;
 }
 
 class Login extends React.Component<LoginProps, LoginState> {
@@ -43,15 +54,11 @@ class Login extends React.Component<LoginProps, LoginState> {
   public async login() {
     const { username, password } = this.state;
     const { login, navigate } = this.props;
-    const success = await login(username, password);
-    if (success === 200) {
+    const { ok, error } = await login(username, password);
+    if (ok) {
       navigate('/dashboard');
-    } else if (success === 401) {
-      this.setState({ errorMessage: 'Invalid email/password.' });
-
-    // Most likely 500, but a user won't need to know differently if it isn't.
     } else {
-      this.setState({ errorMessage: 'Server error! Please contact [somebody] for assistance.' });
+      this.setState({ errorMessage: interpretError(error) });
     }
   }
 

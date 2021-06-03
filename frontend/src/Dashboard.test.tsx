@@ -5,7 +5,7 @@ import {
 import Dashboard from './Dashboard';
 
 test('navigates on successful logout', async () => {
-  const logout = async () => 200;
+  const logout = async () => ({ ok: true, error: '' });
   const navigate = jest.fn(() => {});
 
   render(<Dashboard logout={logout} navigate={navigate} />);
@@ -14,11 +14,11 @@ test('navigates on successful logout', async () => {
   fireEvent.click(submit);
 
   await waitFor(() => expect(navigate).toHaveBeenCalledWith('/login'));
-  expect(() => screen.getByText('Server error! Please contact [somebody] for assistance.')).toThrow();
+  expect(() => screen.getByText('Unexpected server error. Please contact [somebody] for assistance.')).toThrow();
 });
 
 test('show error message on server error', async () => {
-  const logout = async () => 500;
+  const logout = async () => ({ ok: false, error: 'server' });
   const navigate = jest.fn(() => {});
 
   render(<Dashboard logout={logout} navigate={navigate} />);
@@ -26,6 +26,6 @@ test('show error message on server error', async () => {
   const submit = await screen.findByText('Logout');
   fireEvent.click(submit);
 
-  await waitFor(() => expect(screen.getByText('Server error! Please contact [somebody] for assistance.')).toBeTruthy());
+  await waitFor(() => expect(screen.getByText('Unexpected server error. Please contact [somebody] for assistance.')).toBeTruthy());
   expect(navigate).not.toHaveBeenCalledWith('/login');
 });

@@ -1,12 +1,11 @@
 import React from 'react';
+import { ApiResponse } from './api';
 import Login from './Login';
 import Dashboard from './Dashboard';
-// import logo from './logo.svg';
-// import './App.css';
 
 interface AppProps {
-  login: (user: string, pass: string) => Promise<boolean>;
-  logout: () => Promise<boolean>;
+  login: (user: string, pass: string) => Promise<ApiResponse>;
+  logout: () => Promise<ApiResponse>;
 }
 
 interface AppState {

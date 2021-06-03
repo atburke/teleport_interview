@@ -5,7 +5,7 @@ import {
 import Login from './Login';
 
 test('navigates on successful login', async () => {
-  const login = async () => 200;
+  const login = async () => ({ ok: true, error: '' });
   const navigate = jest.fn(() => {});
 
   render(<Login login={login} navigate={navigate} />);
@@ -23,7 +23,7 @@ test('navigates on successful login', async () => {
 });
 
 test('shows error message on failed login', async () => {
-  const login = async () => 401;
+  const login = async () => ({ ok: false, error: 'auth' });
   const navigate = jest.fn(() => {});
 
   render(<Login login={login} navigate={navigate} />);
@@ -41,7 +41,7 @@ test('shows error message on failed login', async () => {
 });
 
 test('shows different error message on server error', async () => {
-  const login = async () => 500;
+  const login = async () => ({ ok: false, error: 'server' });
   const navigate = jest.fn(() => {});
 
   render(<Login login={login} navigate={navigate} />);
@@ -54,6 +54,6 @@ test('shows different error message on server error', async () => {
   fireEvent.change(password, { target: { value: 'topsneaky' } });
   fireEvent.click(submit);
 
-  await waitFor(() => expect(screen.getByText('Server error! Please contact [somebody] for assistance.')).toBeTruthy());
+  await waitFor(() => expect(screen.getByText('Unexpected server error. Please contact [somebody] for assistance.')).toBeTruthy());
   expect(navigate).not.toHaveBeenCalledWith('/dashboard');
 });
