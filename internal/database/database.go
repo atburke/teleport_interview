@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/atburke/teleport_interview/internal/crypto"
+	"github.com/atburke/teleport_interview/internal/types"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
 )

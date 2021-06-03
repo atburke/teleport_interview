@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/subtle"
 	"encoding/hex"
+	"errors"
 	"github.com/atburke/teleport_interview/internal/types"
 	"golang.org/x/crypto/argon2"
 )
@@ -13,11 +14,14 @@ import (
 
 // GenHash generates a password hash from a password and salt. The salt and
 // hash are hex-encoded strings.
-func GenHash(password, salt string) string {
+func GenerateHash(password, salt string) (string, error) {
 	passwordIn := []byte(password)
-	saltIn, _ := hex.DecodeString(salt)
+	saltIn, err := hex.DecodeString(salt)
+	if err != nil {
+		return "", errors.New("Salt is not a hex-encoded string")
+	}
 	hash := argon2.IDKey(passwordIn, saltIn, 2, 15*1024, 1, 16)
-	return hex.EncodeToString(hash)
+	return hex.EncodeToString(hash), nil
 }
 
 // GenerateToken generates a cryptographically-random token.
@@ -36,17 +40,34 @@ func GenerateToken() (string, error) {
 // IsSessionOwner checks if a client's csrf token matches the one in its session
 // in constant time.
 func IsSessionOwner(session *types.Session, csrfToken string) bool {
-	// If we have malformed tokens, this function should return false, so we can
-	// ignore decode errors.
-	expectedCSRFToken, _ := hex.DecodeString(session.CSRFToken)
-	givenCSRFToken, _ := hex.DecodeString(csrfToken)
+	// non-hex-encoded tokens are never valid
+	expectedCSRFToken, err := hex.DecodeString(session.CSRFToken)
+	if err != nil {
+		return false
+	}
+	givenCSRFToken, err := hex.DecodeString(csrfToken)
+	if err != nil {
+		return false
+	}
+
 	return subtle.ConstantTimeCompare(expectedCSRFToken, givenCSRFToken) == 1
 }
 
 // IsCorrectPassword checks if a client's provided password matches the password
 // for the account, in constant time.
-func IsCorrectPassword(account *types.Account, password string) bool {
-	expectedHash, _ := hex.DecodeString(account.PasswordHash)
-	hash, _ := hex.DecodeString(GenHash(password, account.Salt))
-	return subtle.ConstantTimeCompare(expectedHash, hash) == 1
+func IsCorrectPassword(account *types.Account, password string) (bool, error) {
+	expectedHash, err := hex.DecodeString(account.PasswordHash)
+	// non-hex-encoded hash is never valid
+	if err != nil {
+		return false, nil
+	}
+
+	hashBytes, err := GenerateHash(password, account.Salt)
+	if err != nil {
+		return false, err
+	}
+
+	// guaranteed to not error, since hashBytes is the result of EncodeToString
+	hash, _ := hex.DecodeString(hashBytes)
+	return subtle.ConstantTimeCompare(expectedHash, hash) == 1, nil
 }

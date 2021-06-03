@@ -2,8 +2,8 @@ package server
 
 import (
 	"fmt"
-	"github.com/atburke/teleport_interview/internal/database"
 	"github.com/atburke/teleport_interview/internal/crypto"
+	"github.com/atburke/teleport_interview/internal/database"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 //
 // Defining routes like this allows for easy dependency injection in tests.
 type Env struct {
-	db database.Database
+	db      database.Database
 	webroot string
 }
 
@@ -111,7 +111,14 @@ func (env *Env) login(c *gin.Context) {
 		return
 	}
 
-	if !crypto.IsCorrectPassword(account, password) {
+	isCorrectPassword, err := crypto.IsCorrectPassword(account, password)
+	if err != nil {
+		log.Println("Salt stored in database is incorrectly encoded")
+		c.AbortWithStatus(http.StatusInternalServerError)
+		return
+	}
+
+	if !isCorrectPassword {
 		log.Println("Bad password")
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
@@ -196,7 +203,7 @@ func SetupRouter(env *Env) *gin.Engine {
 	router.POST("/api/login", env.login)
 	router.POST("/api/logout", env.logout)
 
-	router.Static("/static", env.webroot + "static")
+	router.Static("/static", env.webroot+"static")
 	rootLevelFiles := []string{
 		"asset-manifest.json",
 		"favicon.ico",

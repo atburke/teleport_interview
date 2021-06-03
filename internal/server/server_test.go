@@ -2,8 +2,8 @@ package server
 
 import (
 	"errors"
-	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/atburke/teleport_interview/internal/crypto"
+	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"net/http"
@@ -84,6 +84,7 @@ const password = "sneakytime"
 const salt = "d7c7dd775f746f67f76ded1cedc7b57f"
 
 func TestLogin(t *testing.T) {
+	hash, _ := crypto.GenerateHash(password, salt)
 	theFuture := time.Now().AddDate(0, 0, 1)
 	token2 := "abcdabcdabcdabcdabcdabcdabcdabcd"
 	session := types.Session{
@@ -101,7 +102,7 @@ func TestLogin(t *testing.T) {
 	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: crypto.GenHash(password, salt),
+		PasswordHash: hash,
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account, authSession: &authSession}
@@ -154,6 +155,7 @@ func TestLoginNoAccount(t *testing.T) {
 // should have similar tests for no session/csrf token
 
 func TestLoginBadSessionToken(t *testing.T) {
+	hash, _ := crypto.GenerateHash(password, salt)
 	theFuture := time.Now().AddDate(0, 0, 1)
 	session := types.Session{
 		SessionToken: sessionToken,
@@ -164,7 +166,7 @@ func TestLoginBadSessionToken(t *testing.T) {
 	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: crypto.GenHash(password, salt),
+		PasswordHash: hash,
 		Salt:         salt,
 	}
 	db := MockDatabase{
@@ -191,6 +193,7 @@ func TestLoginBadSessionToken(t *testing.T) {
 }
 
 func TestLoginBadCSRF(t *testing.T) {
+	hash, _ := crypto.GenerateHash(password, salt)
 	theFuture := time.Now().AddDate(0, 0, 1)
 	session := types.Session{
 		SessionToken: sessionToken,
@@ -201,7 +204,7 @@ func TestLoginBadCSRF(t *testing.T) {
 	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: crypto.GenHash(password, salt),
+		PasswordHash: hash,
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
@@ -223,6 +226,7 @@ func TestLoginBadCSRF(t *testing.T) {
 }
 
 func TestLoginBadPassword(t *testing.T) {
+	hash, _ := crypto.GenerateHash(password, salt)
 	theFuture := time.Now().AddDate(0, 0, 1)
 	session := types.Session{
 		SessionToken: sessionToken,
@@ -233,7 +237,7 @@ func TestLoginBadPassword(t *testing.T) {
 	account := types.Account{
 		AccountId:    accountId,
 		Email:        email,
-		PasswordHash: crypto.GenHash(password, salt),
+		PasswordHash: hash,
 		Salt:         salt,
 	}
 	db := MockDatabase{session: &session, account: &account}
