@@ -123,10 +123,11 @@ func (db *MySqlDatabase) FetchSession(sessionToken string) (*types.Session, erro
 	var accountId, csrfToken string
 	var expireAbs time.Time
 
-	stmt := "SELECT account_id, csrf_token, expire_abs FROM Sessions WHERE session_token = ?"
+	stmt := "SELECT account_id, csrf_token, expire_abs FROM Sessions WHERE session_token = ? AND expire_abs > ?"
 
+	now := db.clock.Now()
 	err := db.driver.QueryRow(
-		stmt, sessionToken,
+		stmt, sessionToken, now,
 	).Scan(&accountIdRaw, &csrfToken, &expireAbs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {

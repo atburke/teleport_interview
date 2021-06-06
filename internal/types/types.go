@@ -15,11 +15,6 @@ type Session struct {
 	ExpireAbs                          time.Time
 }
 
-// Expired checks if the session has expired.
-func (session *Session) Expired(t time.Time) bool {
-	return t.After(session.ExpireAbs)
-}
-
 // Authenticated returns true if the session is associated with an authenticated
 // user, and false if the session is pre-auth.
 func (session *Session) Authenticated() bool {

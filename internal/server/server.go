@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
-	"time"
 )
 
 var AlreadyLoggedIn = errors.New("User is already logged in")
@@ -86,12 +85,6 @@ func (env *Env) validateSession(c *gin.Context) (*types.Session, error) {
 	if err != nil {
 		log.Printf("Error fetching session: %v\n", err)
 		return nil, err
-	}
-
-	now := time.Now()
-	if session.Expired(now) {
-		log.Println("Session expired")
-		return nil, nil // TODO: check expired in db query
 	}
 
 	if !crypto.IsSessionOwner(session, csrfToken) {
