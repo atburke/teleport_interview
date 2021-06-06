@@ -3,10 +3,10 @@ package main
 import (
 	"github.com/atburke/teleport_interview/internal/database"
 	"github.com/atburke/teleport_interview/internal/server"
+	"github.com/benbjohnson/clock"
 	"log"
 	"os"
 	"strings"
-	"github.com/benbjohnson/clock"
 )
 
 func getEnvironment() (*server.Env, error) {

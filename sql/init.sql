@@ -10,7 +10,6 @@ CREATE TABLE IF NOT EXISTS Sessions (
   session_token CHAR(32) PRIMARY KEY,
   account_id CHAR(36),
   csrf_token CHAR(32) NOT NULL,
-  expire_idle TIMESTAMP NOT NULL,
   expire_abs TIMESTAMP NOT NULL
 );
 

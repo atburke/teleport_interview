@@ -6,9 +6,9 @@ import (
 	"fmt"
 	"github.com/atburke/teleport_interview/internal/crypto"
 	"github.com/atburke/teleport_interview/internal/types"
+	"github.com/benbjohnson/clock"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
-	"github.com/benbjohnson/clock"
 )
 
 // tokens and password hash could be []byte objects, but they're strings in the
@@ -33,8 +33,8 @@ type Database interface {
 	// FetchAccount fetches the account for a user.
 	FetchAccount(email string) (*types.Account, error)
 
-	// DeleteExpiredSessions deletes sessions that have expired (after either their
-	// idle or absolute timeout has passed)
+	// DeleteExpiredSessions deletes sessions that have expired (after their
+	// absolute timeout has passed)
 	DeleteExpiredSessions() error
 
 	// Close closes any underlying resources.
@@ -43,7 +43,7 @@ type Database interface {
 
 type MySqlDatabase struct {
 	driver *sql.DB
-	clock clock.Clock
+	clock  clock.Clock
 }
 
 // let's not bother with reusable prepared statements; the performance impact
@@ -73,31 +73,30 @@ func (db *MySqlDatabase) CreateSession(accountId, csrfToken string) (*types.Sess
 	}
 
 	// hooray more hardcoding!
-	const expireIdleTime = 30 * time.Minute
 	const expireAbsTime = 8 * time.Hour
 
-	stmt := "INSERT INTO Sessions(account_id, session_token, csrf_token, expire_idle, expire_abs) VALUES (?, ?, ?, ?, ?)"
+	stmt := "INSERT INTO Sessions(account_id, session_token, csrf_token, expire_abs) VALUES (?, ?, ?, ?)"
 
 	// TODO: consider explicitly handling case where sessionToken happens to be a duplicate?
 	initTime := db.clock.Now()
-	_, err = db.driver.Exec(stmt, accountId, sessionToken, csrfToken, initTime.Add(expireIdleTime), initTime.Add(expireAbsTime))
+	_, err = db.driver.Exec(stmt, accountId, sessionToken, csrfToken, initTime.Add(expireAbsTime))
 	if err != nil {
 		return nil, fmt.Errorf("Error inserting new session: %w", err)
 	}
 
-	return &types.Session{accountId, sessionToken, csrfToken, initTime, initTime}, nil
+	return &types.Session{accountId, sessionToken, csrfToken, initTime}, nil
 }
 
 func (db *MySqlDatabase) FetchSession(sessionToken string) (*types.Session, error) {
 	var accountIdRaw sql.NullString
 	var accountId, csrfToken string
-	var expireIdle, expireAbs time.Time
+	var expireAbs time.Time
 
-	stmt := "SELECT account_id, csrf_token, expire_idle, expire_abs FROM Sessions WHERE session_token = ?"
+	stmt := "SELECT account_id, csrf_token, expire_abs FROM Sessions WHERE session_token = ?"
 
 	err := db.driver.QueryRow(
 		stmt, sessionToken,
-	).Scan(&accountIdRaw, &csrfToken, &expireIdle, &expireAbs)
+	).Scan(&accountIdRaw, &csrfToken, &expireAbs)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("Session not found")
@@ -110,7 +109,7 @@ func (db *MySqlDatabase) FetchSession(sessionToken string) (*types.Session, erro
 		accountId = accountIdRaw.String
 	}
 
-	return &types.Session{accountId, sessionToken, csrfToken, expireIdle, expireAbs}, nil
+	return &types.Session{accountId, sessionToken, csrfToken, expireAbs}, nil
 }
 
 func (db *MySqlDatabase) DeleteSession(sessionToken string) error {
@@ -139,7 +138,7 @@ func (db *MySqlDatabase) FetchAccount(email string) (*types.Account, error) {
 }
 
 func (db *MySqlDatabase) DeleteExpiredSessions() error {
-	stmt := "DELETE FROM Sessions WHERE expire_idle < ? OR expire_abs < ?"
+	stmt := "DELETE FROM Sessions WHERE expire_abs < ?"
 	t := db.clock.Now()
 	_, err := db.driver.Exec(stmt, t, t)
 	if err != nil {

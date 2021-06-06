@@ -90,13 +90,11 @@ func TestLogin(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	authSession := types.Session{
 		SessionToken: token2,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	account := types.Account{
@@ -133,7 +131,6 @@ func TestLoginNoAccount(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session, accountError: errors.New("Account not found")}
@@ -160,7 +157,6 @@ func TestLoginBadSessionToken(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	account := types.Account{
@@ -198,7 +194,6 @@ func TestLoginBadCSRF(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	account := types.Account{
@@ -231,7 +226,6 @@ func TestLoginBadPassword(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	account := types.Account{
@@ -263,7 +257,6 @@ func TestLogout(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session}
@@ -302,7 +295,6 @@ func TestLogoutBadCSRF(t *testing.T) {
 	session := types.Session{
 		SessionToken: sessionToken,
 		CSRFToken:    csrfToken,
-		ExpireIdle:   theFuture,
 		ExpireAbs:    theFuture,
 	}
 	db := MockDatabase{session: &session}

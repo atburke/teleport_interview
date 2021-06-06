@@ -12,19 +12,17 @@ func TestSessionExpire(t *testing.T) {
 	tAfter := time.Date(2021, time.May, 29, 11, 0, 0, 0, time.UTC)
 
 	tests := []struct {
-		name               string
-		now, exIdle, exAbs time.Time
-		isExpired          bool
+		name       string
+		now, exAbs time.Time
+		isExpired  bool
 	}{
-		{"not expired", now, tAfter, tAfter, false},
-		{"idle expire", now, tBefore, tAfter, true},
-		{"absolute expire", now, tAfter, tBefore, true},
-		{"both expire", now, tBefore, tBefore, true},
+		{"not expired", now, tAfter, false},
+		{"absolute expire", now, tBefore, true},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			s := Session{ExpireIdle: test.exIdle, ExpireAbs: test.exAbs}
+			s := Session{ExpireAbs: test.exAbs}
 			assert.Equal(t, test.isExpired, s.Expired(test.now))
 		})
 	}
