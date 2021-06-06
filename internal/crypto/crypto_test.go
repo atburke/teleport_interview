@@ -28,9 +28,7 @@ func TestCorrectPassword(t *testing.T) {
 	expectedHash, err := GenerateHash(password, salt)
 	require.Nil(t, err)
 	account := types.Account{PasswordHash: expectedHash, Salt: salt}
-	isCorrectPassword, err := IsCorrectPassword(&account, password)
-	assert.Nil(t, err)
-	assert.True(t, isCorrectPassword)
+	assert.True(t, IsCorrectPassword(&account, password))
 }
 
 func TestNotCorrectPassword(t *testing.T) {
@@ -39,9 +37,7 @@ func TestNotCorrectPassword(t *testing.T) {
 	expectedHash, err := GenerateHash(password, salt)
 	require.Nil(t, err)
 	account := types.Account{PasswordHash: expectedHash, Salt: salt}
-	isCorrectPassword, err := IsCorrectPassword(&account, "mypasswordd")
-	assert.Nil(t, err)
-	assert.False(t, isCorrectPassword)
+	assert.False(t, IsCorrectPassword(&account, "mypasswordd"))
 }
 
 func TestBadSalt(t *testing.T) {

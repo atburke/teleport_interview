@@ -55,19 +55,19 @@ func IsSessionOwner(session *types.Session, csrfToken string) bool {
 
 // IsCorrectPassword checks if a client's provided password matches the password
 // for the account, in constant time.
-func IsCorrectPassword(account *types.Account, password string) (bool, error) {
+func IsCorrectPassword(account *types.Account, password string) bool {
 	expectedHash, err := hex.DecodeString(account.PasswordHash)
 	// non-hex-encoded hash is never valid
 	if err != nil {
-		return false, nil
+		return false
 	}
 
 	hashBytes, err := GenerateHash(password, account.Salt)
 	if err != nil {
-		return false, err
+		return false
 	}
 
 	// guaranteed to not error, since hashBytes is the result of EncodeToString
 	hash, _ := hex.DecodeString(hashBytes)
-	return subtle.ConstantTimeCompare(expectedHash, hash) == 1, nil
+	return subtle.ConstantTimeCompare(expectedHash, hash) == 1
 }

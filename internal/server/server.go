@@ -133,14 +133,7 @@ func (env *Env) login(c *gin.Context) {
 		return
 	}
 
-	isCorrectPassword, err := crypto.IsCorrectPassword(account, password)
-	if err != nil {
-		log.Println("Salt stored in database is incorrectly encoded")
-		c.AbortWithStatus(http.StatusInternalServerError)
-		return
-	}
-
-	if !isCorrectPassword {
+	if !crypto.IsCorrectPassword(account, password) {
 		log.Println("Bad password")
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
