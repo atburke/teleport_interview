@@ -1,14 +1,23 @@
 package server
 
 import (
+	"errors"
 	"fmt"
 	"github.com/atburke/teleport_interview/internal/crypto"
 	"github.com/atburke/teleport_interview/internal/database"
+	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/gin-gonic/gin"
 	"log"
 	"net/http"
 	"time"
 )
+
+var AlreadyLoggedIn = errors.New("User is already logged in")
+
+// could specify different errors for csrf vs session, but caller won't take
+// different action depending on which is missing
+var MissingToken = errors.New("Missing a required token")
+var NotOwner = errors.New("Not owner of this session")
 
 // Env defines routes, as well as objects that should be shared across requests
 // (database connections, config, etc.)
@@ -59,41 +68,56 @@ func (env *Env) serveIndex(c *gin.Context) {
 	c.HTML(http.StatusOK, "index.html", gin.H{"csrf": csrfToken})
 }
 
-func (env *Env) login(c *gin.Context) {
-	now := time.Now()
+// TODO: make this proper middleware
+func (env *Env) validateSession(c *gin.Context) (*types.Session, error) {
 	csrfToken := c.Request.Header.Get("CSRF")
+	if csrfToken == "" {
+		log.Println("Missing CSRF token")
+		return nil, MissingToken
+	}
 
 	sessionToken, err := c.Cookie("session_token")
 	// should look into deduplicating this
 	// should also look into a logging library w/ levels (debug, info, warning, etc)
 	if err != nil {
 		log.Println("Missing session token")
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return nil, MissingToken
 	}
 
 	session, err := env.db.FetchSession(sessionToken)
 	if err != nil {
 		log.Printf("Error fetching session: %v\n", err)
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return nil, err
 	}
 
+	now := time.Now()
 	if session.Expired(now) {
 		log.Println("Session expired")
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return nil, nil // TODO: check expired in db query
 	}
 
 	if !crypto.IsSessionOwner(session, csrfToken) {
 		log.Println("Not owner of session")
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
+		return nil, NotOwner
 	}
 
 	if session.Authenticated() {
 		log.Println("Already logged in")
-		c.AbortWithStatus(http.StatusOK)
+		return nil, AlreadyLoggedIn
+	}
+
+	return session, nil
+}
+
+func (env *Env) login(c *gin.Context) {
+	session, err := env.validateSession(c)
+	if err != nil {
+		if errors.Is(err, AlreadyLoggedIn) {
+			c.AbortWithStatus(http.StatusOK)
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+
 		return
 	}
 
@@ -126,14 +150,15 @@ func (env *Env) login(c *gin.Context) {
 
 	// both session tuples should only be accessed by this user, so we won't bother
 	// with a transaction
-	authenticatedSession, err := env.db.CreateSession(account.AccountId, csrfToken, now)
+	now := time.Now()
+	authenticatedSession, err := env.db.CreateSession(account.AccountId, session.CSRFToken, now)
 	if err != nil {
 		log.Printf("Error creating session: %v\n", err)
 		c.AbortWithStatus(http.StatusUnauthorized)
 		return
 	}
 
-	err = env.db.DeleteSession(sessionToken)
+	err = env.db.DeleteSession(session.SessionToken)
 	if err != nil {
 		log.Printf("Error deleting old session: %v\n", err)
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -154,39 +179,18 @@ func (env *Env) login(c *gin.Context) {
 }
 
 func (env *Env) logout(c *gin.Context) {
-	// TODO: move logged in check to its own function
-	now := time.Now()
-	csrfToken := c.Request.Header.Get("CSRF")
-
-	sessionToken, err := c.Cookie("session_token")
-	// should look into deduplicating this
-	// should also look into a logging library w/ levels (debug, info, warning, etc)
+	session, err := env.validateSession(c)
 	if err != nil {
-		log.Println("Missing session token")
-		c.AbortWithStatus(http.StatusUnauthorized)
+		if errors.Is(err, AlreadyLoggedIn) {
+			c.AbortWithStatus(http.StatusOK)
+		} else {
+			c.AbortWithStatus(http.StatusUnauthorized)
+		}
+
 		return
 	}
 
-	session, err := env.db.FetchSession(sessionToken)
-	if err != nil {
-		log.Printf("Error fetching session: %v\n", err)
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	if session.Expired(now) {
-		log.Println("Session expired")
-		c.AbortWithStatus(http.StatusOK)
-		return
-	}
-
-	if !crypto.IsSessionOwner(session, csrfToken) {
-		log.Println("Not owner of session")
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-
-	err = env.db.DeleteSession(sessionToken)
+	err = env.db.DeleteSession(session.SessionToken)
 	if err != nil {
 		log.Printf("Error deleting session: %v\n", err)
 	}
