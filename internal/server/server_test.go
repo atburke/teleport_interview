@@ -44,7 +44,7 @@ func (m *MockDatabase) DeleteExpiredSessions() error {
 	return m.sessionError
 }
 
-func (m *MockDatabase) Close() {}
+func (m *MockDatabase) Close() error { return nil }
 
 func TestPing(t *testing.T) {
 	router := SetupRouter(&Env{&MockDatabase{}, "./web/"})

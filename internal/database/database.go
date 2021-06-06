@@ -38,7 +38,7 @@ type Database interface {
 	DeleteExpiredSessions() error
 
 	// Close closes any underlying resources.
-	Close()
+	Close() error
 }
 
 type MySqlDatabase struct {
@@ -148,6 +148,10 @@ func (db *MySqlDatabase) DeleteExpiredSessions() error {
 	return nil
 }
 
-func (db *MySqlDatabase) Close() {
-	db.driver.Close()
+func (db *MySqlDatabase) Close() error {
+	err := db.driver.Close()
+	if err != nil {
+		return fmt.Errorf("Failed to close sql client: %w", err)
+	}
+	return nil
 }
