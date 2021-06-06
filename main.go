@@ -25,7 +25,7 @@ func getEnvironment() (*server.Env, error) {
 		return nil, err
 	}
 
-	db, err := database.NewMySqlDatabase(
+	db, err := database.Open(
 		strings.TrimSpace(string(dbUsername)),
 		strings.TrimSpace(string(dbPassword)),
 		strings.TrimSpace(string(dbName)),

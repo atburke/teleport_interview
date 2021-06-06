@@ -8,6 +8,7 @@ import (
 	"github.com/atburke/teleport_interview/internal/types"
 	"github.com/benbjohnson/clock"
 	_ "github.com/go-sql-driver/mysql"
+	"log"
 	"time"
 )
 
@@ -44,6 +45,7 @@ type Database interface {
 type MySqlDatabase struct {
 	driver *sql.DB
 	clock  clock.Clock
+	done   chan struct{}
 }
 
 // let's not bother with reusable prepared statements; the performance impact
@@ -57,7 +59,36 @@ func NewMySqlDatabase(username, password, databaseName string, clock clock.Clock
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to database: %w", err)
 	}
-	return &MySqlDatabase{driver, clock}, nil
+	return &MySqlDatabase{driver: driver, clock: clock}, nil
+}
+
+func Open(username, password, databaseName string, clock clock.Clock) (*MySqlDatabase, error) {
+	db, err := NewMySqlDatabase(username, password, databaseName, clock)
+	if err != nil {
+		return nil, err
+	}
+
+	db.done = make(chan struct{})
+
+	go func() {
+		tick := db.clock.Ticker(time.Minute)
+		defer tick.Stop()
+
+		for {
+			select {
+			case <-tick.C:
+				log.Println("Clearing expired sessions")
+				err := db.DeleteExpiredSessions()
+				if err != nil {
+					log.Printf("Error while cleaning up expired sessions: %v\n", err)
+				}
+			case <-db.done:
+				return
+			}
+		}
+	}()
+
+	return db, nil
 }
 
 func (db *MySqlDatabase) CreatePreAuthSession(csrfToken string) (*types.Session, error) {
@@ -140,7 +171,7 @@ func (db *MySqlDatabase) FetchAccount(email string) (*types.Account, error) {
 func (db *MySqlDatabase) DeleteExpiredSessions() error {
 	stmt := "DELETE FROM Sessions WHERE expire_abs < ?"
 	t := db.clock.Now()
-	_, err := db.driver.Exec(stmt, t, t)
+	_, err := db.driver.Exec(stmt, t)
 	if err != nil {
 		return fmt.Errorf("SQL Error: %w", err)
 	}
@@ -149,6 +180,7 @@ func (db *MySqlDatabase) DeleteExpiredSessions() error {
 }
 
 func (db *MySqlDatabase) Close() error {
+	db.done <- struct{}{} // TODO: consider waiting for goroutine to stop
 	err := db.driver.Close()
 	if err != nil {
 		return fmt.Errorf("Failed to close sql client: %w", err)

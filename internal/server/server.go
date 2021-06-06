@@ -222,18 +222,6 @@ func SetupRouter(env *Env) *gin.Engine {
 }
 
 func Run(env *Env) error {
-	go func() {
-		tick := time.NewTicker(time.Minute)
-		for {
-			<-tick.C
-			log.Println("Clearing expired sessions")
-			err := env.db.DeleteExpiredSessions()
-			if err != nil {
-				log.Printf("Error while cleaning up expired sessions: %v\n", err)
-			}
-		}
-	}()
-
 	router := SetupRouter(env)
 	return router.RunTLS(
 		":8080", "/run/secrets/server-cert.pem", "/run/secrets/server-key.pem",
