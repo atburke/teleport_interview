@@ -176,6 +176,8 @@ func (env *Env) logout(c *gin.Context) {
 	err = env.db.DeleteSession(session.SessionToken)
 	if err != nil {
 		log.Printf("Error deleting session: %v\n", err)
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
 	}
 
 	c.AbortWithStatus(http.StatusOK)
