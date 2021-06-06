@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 	"strings"
+	"github.com/benbjohnson/clock"
 )
 
 func getEnvironment() (*server.Env, error) {
@@ -28,6 +29,7 @@ func getEnvironment() (*server.Env, error) {
 		strings.TrimSpace(string(dbUsername)),
 		strings.TrimSpace(string(dbPassword)),
 		strings.TrimSpace(string(dbName)),
+		clock.New(),
 	)
 	if err != nil {
 		return nil, err

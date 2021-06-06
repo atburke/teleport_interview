@@ -20,11 +20,11 @@ type MockDatabase struct {
 	sessionError, accountError error
 }
 
-func (m *MockDatabase) CreatePreAuthSession(csrfToken string, initTime time.Time) (*types.Session, error) {
+func (m *MockDatabase) CreatePreAuthSession(csrfToken string) (*types.Session, error) {
 	return m.session, m.sessionError
 }
 
-func (m *MockDatabase) CreateSession(accountId, csrfToken string, initTime time.Time) (*types.Session, error) {
+func (m *MockDatabase) CreateSession(accountId, csrfToken string) (*types.Session, error) {
 	return m.authSession, m.sessionError
 }
 
@@ -40,7 +40,7 @@ func (m *MockDatabase) FetchAccount(email string) (*types.Account, error) {
 	return m.account, m.accountError
 }
 
-func (m *MockDatabase) DeleteExpiredSessions(t time.Time) error {
+func (m *MockDatabase) DeleteExpiredSessions() error {
 	return m.sessionError
 }
 

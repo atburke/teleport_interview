@@ -8,6 +8,7 @@ import (
 	"github.com/atburke/teleport_interview/internal/types"
 	_ "github.com/go-sql-driver/mysql"
 	"time"
+	"github.com/benbjohnson/clock"
 )
 
 // tokens and password hash could be []byte objects, but they're strings in the
@@ -18,10 +19,10 @@ type Database interface {
 
 	// CreatePreAuthSession creates a new session for a user that has not yet
 	// authenticated.
-	CreatePreAuthSession(csrfToken string, initTime time.Time) (*types.Session, error)
+	CreatePreAuthSession(csrfToken string) (*types.Session, error)
 
 	// CreateSession creates a new session for an authenticated user.
-	CreateSession(accountId, csrfToken string, initTime time.Time) (*types.Session, error)
+	CreateSession(accountId, csrfToken string) (*types.Session, error)
 
 	// FetchSession fetches the session identified by the provided token.
 	FetchSession(sessionToken string) (*types.Session, error)
@@ -34,7 +35,7 @@ type Database interface {
 
 	// DeleteExpiredSessions deletes sessions that have expired (after either their
 	// idle or absolute timeout has passed)
-	DeleteExpiredSessions(t time.Time) error
+	DeleteExpiredSessions() error
 
 	// Close closes any underlying resources.
 	Close()
@@ -42,12 +43,13 @@ type Database interface {
 
 type MySqlDatabase struct {
 	driver *sql.DB
+	clock clock.Clock
 }
 
 // let's not bother with reusable prepared statements; the performance impact
 // should be minimal for us
 
-func NewMySqlDatabase(username, password, databaseName string) (*MySqlDatabase, error) {
+func NewMySqlDatabase(username, password, databaseName string, clock clock.Clock) (*MySqlDatabase, error) {
 	// hardcode non-sensitive info to speed us along
 	driver, err := sql.Open("mysql",
 		fmt.Sprintf("%s:%s@tcp(db:3306)/%s?parseTime=true", username, password, databaseName),
@@ -55,16 +57,16 @@ func NewMySqlDatabase(username, password, databaseName string) (*MySqlDatabase, 
 	if err != nil {
 		return nil, fmt.Errorf("Could not connect to database: %w", err)
 	}
-	return &MySqlDatabase{driver}, nil
+	return &MySqlDatabase{driver, clock}, nil
 }
 
-func (db *MySqlDatabase) CreatePreAuthSession(csrfToken string, initTime time.Time) (*types.Session, error) {
+func (db *MySqlDatabase) CreatePreAuthSession(csrfToken string) (*types.Session, error) {
 	// an empty account ID is functionally equivalent to NULL. Consider doing this
 	// instead of having account_id nullable?
-	return db.CreateSession("", csrfToken, initTime)
+	return db.CreateSession("", csrfToken)
 }
 
-func (db *MySqlDatabase) CreateSession(accountId, csrfToken string, initTime time.Time) (*types.Session, error) {
+func (db *MySqlDatabase) CreateSession(accountId, csrfToken string) (*types.Session, error) {
 	sessionToken, err := crypto.GenerateToken()
 	if err != nil {
 		return nil, fmt.Errorf("Cound not generate token: %w", err)
@@ -77,6 +79,7 @@ func (db *MySqlDatabase) CreateSession(accountId, csrfToken string, initTime tim
 	stmt := "INSERT INTO Sessions(account_id, session_token, csrf_token, expire_idle, expire_abs) VALUES (?, ?, ?, ?, ?)"
 
 	// TODO: consider explicitly handling case where sessionToken happens to be a duplicate?
+	initTime := db.clock.Now()
 	_, err = db.driver.Exec(stmt, accountId, sessionToken, csrfToken, initTime.Add(expireIdleTime), initTime.Add(expireAbsTime))
 	if err != nil {
 		return nil, fmt.Errorf("Error inserting new session: %w", err)
@@ -135,8 +138,9 @@ func (db *MySqlDatabase) FetchAccount(email string) (*types.Account, error) {
 	return &types.Account{accountId, email, passwordHash, salt}, nil
 }
 
-func (db *MySqlDatabase) DeleteExpiredSessions(t time.Time) error {
+func (db *MySqlDatabase) DeleteExpiredSessions() error {
 	stmt := "DELETE FROM Sessions WHERE expire_idle < ? OR expire_abs < ?"
+	t := db.clock.Now()
 	_, err := db.driver.Exec(stmt, t, t)
 	if err != nil {
 		return fmt.Errorf("SQL Error: %w", err)

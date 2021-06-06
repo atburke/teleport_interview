@@ -37,8 +37,6 @@ func (env *Env) ping(c *gin.Context) {
 }
 
 func (env *Env) serveIndex(c *gin.Context) {
-	now := time.Now()
-
 	csrfToken, err := crypto.GenerateToken()
 	if err != nil {
 		log.Println(err)
@@ -46,7 +44,7 @@ func (env *Env) serveIndex(c *gin.Context) {
 		return
 	}
 
-	session, err := env.db.CreatePreAuthSession(csrfToken, now)
+	session, err := env.db.CreatePreAuthSession(csrfToken)
 	if err != nil {
 		log.Println(err)
 		c.AbortWithStatus(http.StatusInternalServerError)
@@ -150,8 +148,7 @@ func (env *Env) login(c *gin.Context) {
 
 	// both session tuples should only be accessed by this user, so we won't bother
 	// with a transaction
-	now := time.Now()
-	authenticatedSession, err := env.db.CreateSession(account.AccountId, session.CSRFToken, now)
+	authenticatedSession, err := env.db.CreateSession(account.AccountId, session.CSRFToken)
 	if err != nil {
 		log.Printf("Error creating session: %v\n", err)
 		c.AbortWithStatus(http.StatusUnauthorized)
@@ -228,9 +225,9 @@ func Run(env *Env) error {
 	go func() {
 		tick := time.NewTicker(time.Minute)
 		for {
-			now := <-tick.C
+			<-tick.C
 			log.Println("Clearing expired sessions")
-			err := env.db.DeleteExpiredSessions(now)
+			err := env.db.DeleteExpiredSessions()
 			if err != nil {
 				log.Printf("Error while cleaning up expired sessions: %v\n", err)
 			}
